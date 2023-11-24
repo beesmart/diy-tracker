@@ -34,15 +34,17 @@ class UpdateJobRequest extends FormRequest
             'description' => 'nullable|string|max:1000',
             'user_id' => 'exists:users,id',
             'status' => 'required|boolean',
+            
         ];
 
         // If the request contains data for job_details, include the validation rules
         if ($this->has('priority') || $this->has('completion_date') || $this->has('est_cost') || $this->has('attachments')) {
             $jobDetailRules = [
-                'priority' => 'string|max:255',
+                'priority' => 'nullable|string|max:255',
                 'completion_date' => 'nullable|date',
                 'est_cost' => 'nullable|numeric',
-                'attachments' => 'nullable|string'
+                'attachments' => 'nullable|array|max:3',
+                'attachments.*'  => 'nullable|string',
             ];
 
             // Merge the rules for Job and JobDetail

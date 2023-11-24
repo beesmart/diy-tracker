@@ -39,10 +39,11 @@ class StoreJobRequest extends FormRequest
         // If the request contains data for job_details, include the validation rules
         if ($this->has('priority') || $this->has('completion_date') || $this->has('est_cost') || $this->has('attachments')) {
             $jobDetailRules = [
-                'priority' => 'string|max:255',
+                'priority' => 'nullable|string|max:255',
                 'completion_date' => 'nullable|date',
                 'est_cost' => 'nullable|numeric',
-                'attachments' => 'nullable|string'
+                'attachments' => 'nullable|array|max:3',
+                'attachments.*'  => 'nullable|array',
             ];
 
             // Merge the rules for Job and JobDetail

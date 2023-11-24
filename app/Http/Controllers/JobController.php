@@ -48,9 +48,22 @@ class JobController extends Controller
 
         $job = Job::create($jobData);
 
-        if (isset($data['attachments'])) {
-            $relPath = $this->saveImage($data['attachments']);
-            $data['attachments'] = $relPath;
+        // if (isset($data['attachments'])) {
+        //     $relPath = $this->saveImage($data['attachments']);
+        //     $data['attachments'] = $relPath;
+        // }
+
+         // Handle attachments if they exist
+        if (isset($data['attachments']) && is_array($data['attachments'])) {
+            $attachmentPaths = [];
+
+            foreach ($data['attachments'] as $attachment) {
+                // Assuming 'file' is a File object and 'url' is the data URL
+                $relPath = $this->saveImage($attachment['url']);
+                $attachmentPaths[] = $relPath;
+            }
+
+            $data['attachments'] = $attachmentPaths;
         }
 
          // Extract data for JobDetail creation
@@ -58,7 +71,7 @@ class JobController extends Controller
             'priority' => $data['priority'],
             'completion_date' => $data['completion_date'],
             'est_cost' => $data['est_cost'],
-            'attachments' => $data['attachments']
+            'attachments' => json_encode($data['attachments'])
         // Add other fields for JobDetail as needed
         ];
 
@@ -100,18 +113,32 @@ class JobController extends Controller
         ]);
 
         // TODO check if image has changed if not, dont save
-        if (isset($data['attachments'])) {
-            $relPath = $this->saveImage($data['attachments']);
-            $data['attachments'] = $relPath;
-
-            if($job->attachments) {
-                $absolutePath = public_path($job->attachments);
-                File::delete($absolutePath);
+        if (isset($data['attachments']) && is_array($data['attachments'])) {
+            // Handle changes in attachments
+            $newAttachmentPaths = [];
+        
+            foreach ($data['attachments'] as $attachment) {
+                // Assuming 'file' is a File object and 'url' is the data URL
+                $relPath = $this->saveImage($attachment['url']);
+                $newAttachmentPaths[] = $relPath;
             }
-
-
+        
+            // Delete existing attachments that are not in the new set
+            if ($job->attachments) {
+                $existingAttachmentPaths = is_array($job->attachments) ? $job->attachments : [$job->attachments];
+        
+                foreach ($existingAttachmentPaths as $existingPath) {
+                    if (!in_array($existingPath, $newAttachmentPaths)) {
+                        $absolutePath = public_path($existingPath);
+                        File::delete($absolutePath);
+                    }
+                }
+            }
+        
+            // Update the attachments field with the new paths
+            $data['attachments'] = $newAttachmentPaths;
         }
-
+    
   
     
         // Check if the Job model has an associated JobDetail
@@ -122,7 +149,7 @@ class JobController extends Controller
                 'priority' => $data['priority'],
                 'completion_date' => $data['completion_date'],
                 'est_cost' => $data['est_cost'],
-                'attachments' => $data['attachments'],
+                'attachments' => json_encode($data['attachments']),
                 // Add other fields for JobDetail as needed
             ]);
         } else {

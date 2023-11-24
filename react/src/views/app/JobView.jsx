@@ -8,7 +8,8 @@ import { useNavigate } from 'react-router-dom';
 
 export default function JobsView() {
 
-    const navigate = useNavigate();
+    const navigate = useNavigate();    
+    const [error, setError] = useState("");
 
     const [job, setJob] = useState({
         title: '', 
@@ -36,22 +37,68 @@ export default function JobsView() {
             ev.target.value = "";
         }
 
-
-
         reader.readAsDataURL(file);
-
     }
+
+    const handleAttachmentChange = (ev) => {
+      const files = ev.target.files;
+
+      const attachmentArray = [];
+      // Convert the FileList object to an array and update state
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const reader = new FileReader();
+    
+        // Use a closure to capture the current file in the callback
+        reader.onload = (() => {
+          return () => {
+            attachmentArray.push({
+              file: file,
+              url: reader.result,
+            });
+    
+            // If all files are processed, update the state
+            if (attachmentArray.length === files.length) {
+              setJob({ ...job, attachments: attachmentArray });
+              ev.target.value = "";
+            }
+          };
+        })();
+    
+        // Read the file as a data URL
+        reader.readAsDataURL(file);
+      }
+    };
+
+    const handleRemoveAttachment = (index) => {
+      const updatedAttachments = [...job.attachments];
+      updatedAttachments.splice(index, 1);
+      setJob({ ...job, attachments: updatedAttachments });
+    };
+
+
+    const renderThumbnails = () => {
+      return job.attachments.map((attachment, index) => (
+        <div key={index} className="thumbnail-container">
+          <img
+            width="50px"
+            src={attachment.url}
+            alt={`Thumbnail ${index + 1}`}
+            className="thumbnail"
+          />
+          <button type="button" onClick={() => handleRemoveAttachment(index)}>
+            Remove
+          </button>
+        </div>
+      ));
+    };
+    
+
+    
+  
 
     const onSubmit = (ev) => {
         ev.preventDefault();
-
-        // axiosInstance.post('/job', {
-        //   title: 'LoremTwo',
-        //   description: 'Ipsum',
-        //   status: true,
-        //   priority: 'high',
-
-        // })
 
         const payload = { ...job };
 
@@ -69,6 +116,11 @@ export default function JobsView() {
           console.log(res.data);
           navigate('/app/jobs');
         })
+        .catch(err => {
+           if (err.response) {
+            setError(err.response.data.message);
+           }
+        })
 
     }
 
@@ -78,7 +130,12 @@ export default function JobsView() {
             
           <form action="#" method="POST" onSubmit={onSubmit}>
             <div className="shadow sm:overflow-hidden sm:rounded-md">
+
                 <div className="space-y-6 bg-white px-4 py-5 sm:p-6">
+
+                {error && (
+                <div className="bg-red-500 text-white py-3 px-3">{error}</div>
+                )}
                     
                     {/*Image*/}
                     <div>
@@ -112,6 +169,29 @@ export default function JobsView() {
                         </div>
                     </div>
                     {/*Image*/}
+
+                    {/*Attachment*/}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                        Image Gallery
+                        </label>
+                        <div className="mt-1 flex items-center">
+
+                          {/* File input for multiple attachments */}
+                          <input type="file" onChange={handleAttachmentChange} multiple />
+
+                            {/* Display image thumbnails and allow removal */}
+                              {job.attachments.length > 0 && (
+                                <div>
+                                  <h3>Selected Attachments:</h3>
+                                  <div className="thumbnails">{renderThumbnails()}</div>
+                                </div>
+                            )}
+
+                        </div>
+                    </div>
+
+                    {/*Attachment*/}
 
                     {/*Title*/}
                     <div className="col-span-6 sm:col-span-3">
